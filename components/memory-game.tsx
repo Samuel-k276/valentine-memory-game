@@ -171,6 +171,7 @@ export function MemoryGame() {
     return saved ? parseInt(saved, 10) : MAX_HEALTH
   })
   const [gameWasLost, setGameWasLost] = useState(false)
+  const [gameWasWon, setGameWasWon] = useState(false)
 
   // Update game health when storedLives changes on mount
   useEffect(() => {
@@ -189,11 +190,24 @@ export function MemoryGame() {
     }
   }, [gameLost])
 
+  // Track when game is won
+  useEffect(() => {
+    if (gameWon) {
+      setGameWasWon(true)
+    }
+  }, [gameWon])
+
   console.log(cards)
 
   const resetGame = useCallback(() => {
+    // If the game was won, reset to 8 lives
+    if (gameWasWon) {
+      setStoredLives(MAX_HEALTH)
+      dispatch({ type: "RESET", health: MAX_HEALTH })
+      setGameWasWon(false)
+    } 
     // If the game was lost, add 1 extra life for next game
-    if (gameWasLost) {
+    else if (gameWasLost) {
       const newLives = storedLives + 1
       setStoredLives(newLives)
       dispatch({ type: "RESET", health: newLives })
@@ -201,7 +215,7 @@ export function MemoryGame() {
     } else {
       dispatch({ type: "RESET", health: storedLives })
     }
-  }, [gameWasLost, storedLives])
+  }, [gameWasWon, gameWasLost, storedLives])
 
   const handleCardClick = useCallback((id: number) => {
     dispatch({ type: "FLIP_CARD", id })
