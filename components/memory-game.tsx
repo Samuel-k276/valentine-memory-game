@@ -1,6 +1,6 @@
 "use client"
 
-import { useReducer, useCallback, useEffect } from "react"
+import { useReducer, useCallback, useEffect, useState } from "react"
 import { MemoryCard, type CardData } from "./memory-card"
 import { HealthBar } from "./health-bar"
 import { EnvelopeReveal } from "./envelope-reveal"
@@ -8,6 +8,7 @@ import { GameOver } from "./game-over"
 import { Trophy } from "lucide-react"
 
 const MAX_HEALTH = 8
+const STORAGE_KEY = "memoryGameLives"
 
 // Create pairs: [0.jpg, 0.jpg, 1.jpg, 1.jpg, ..., 11.jpg, 11.jpg]
 function createCardPairs(): CardData[] {
@@ -48,7 +49,8 @@ type GameAction =
   | { type: "STOP_SHAKING" }
   | { type: "SET_WON" }
   | { type: "SET_LOST" }
-  | { type: "RESET" }
+  | { type: "RESET"; health?: number }
+  | { type: "SET_INITIAL_HEALTH"; health: number }
 
 function createInitialState(): GameState {
   return {
@@ -87,7 +89,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
       // Second pick -- determine match/mismatch by comparing image sources
-      const isMatch = state.firstPick.image === clickedCard.image || true
+      const isMatch = state.firstPick.image === clickedCard.image
 
       return {
         ...state,
@@ -147,7 +149,13 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, gameLost: true }
 
     case "RESET":
-      return createInitialState()
+      return {
+        ...createInitialState(),
+        health: action.health ?? MAX_HEALTH,
+      }
+
+    case "SET_INITIAL_HEALTH":
+      return { ...state, health: action.health }
 
     default:
       return state
@@ -157,12 +165,43 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 export function MemoryGame() {
   const [state, dispatch] = useReducer(gameReducer, null, createInitialState)
   const { cards, health, matchedPairs, pendingResult, isChecking, isShaking, gameWon, gameLost } = state
+  
+  const [storedLives, setStoredLives] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    return saved ? parseInt(saved, 10) : MAX_HEALTH
+  })
+  const [gameWasLost, setGameWasLost] = useState(false)
+
+  // Update game health when storedLives changes on mount
+  useEffect(() => {
+    dispatch({ type: "SET_INITIAL_HEALTH", health: storedLives })
+  }, [])
+
+  // Save lives to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, String(storedLives))
+  }, [storedLives])
+
+  // Track when game is lost
+  useEffect(() => {
+    if (gameLost) {
+      setGameWasLost(true)
+    }
+  }, [gameLost])
 
   console.log(cards)
 
   const resetGame = useCallback(() => {
-    dispatch({ type: "RESET" })
-  }, [])
+    // If the game was lost, add 1 extra life for next game
+    if (gameWasLost) {
+      const newLives = storedLives + 1
+      setStoredLives(newLives)
+      dispatch({ type: "RESET", health: newLives })
+      setGameWasLost(false)
+    } else {
+      dispatch({ type: "RESET", health: storedLives })
+    }
+  }, [gameWasLost, storedLives])
 
   const handleCardClick = useCallback((id: number) => {
     dispatch({ type: "FLIP_CARD", id })
@@ -217,7 +256,7 @@ export function MemoryGame() {
       {/* Game Stats */}
       <div className="max-w-2xl mx-auto px-4 mb-4">
         <div className="flex items-center justify-between bg-card rounded-xl px-4 py-3 shadow-sm border border-border">
-          <HealthBar currentHealth={health} maxHealth={MAX_HEALTH} shaking={isShaking} />
+          <HealthBar currentHealth={health} maxHealth={storedLives} shaking={isShaking} />
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5">
               <Trophy className="w-4 h-4 text-accent" aria-hidden="true" />
