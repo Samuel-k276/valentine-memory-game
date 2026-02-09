@@ -166,16 +166,20 @@ export function MemoryGame() {
   const [state, dispatch] = useReducer(gameReducer, null, createInitialState)
   const { cards, health, matchedPairs, pendingResult, isChecking, isShaking, gameWon, gameLost } = state
   
-  const [storedLives, setStoredLives] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    return saved ? parseInt(saved, 10) : MAX_HEALTH
-  })
+  const [storedLives, setStoredLives] = useState(MAX_HEALTH)
   const [gameWasLost, setGameWasLost] = useState(false)
   const [gameWasWon, setGameWasWon] = useState(false)
 
-  // Update game health when storedLives changes on mount
+  // Load stored lives from localStorage on mount (client-side only)
   useEffect(() => {
-    dispatch({ type: "SET_INITIAL_HEALTH", health: storedLives })
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      const lives = parseInt(saved, 10)
+      setStoredLives(lives)
+      dispatch({ type: "SET_INITIAL_HEALTH", health: lives })
+    } else {
+      dispatch({ type: "SET_INITIAL_HEALTH", health: MAX_HEALTH })
+    }
   }, [])
 
   // Save lives to localStorage whenever they change
