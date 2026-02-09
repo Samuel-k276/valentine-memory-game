@@ -26,8 +26,6 @@ export function MemoryCard({ id, image, isFlipped, isMatched, onClick, disabled 
     }
   }
 
-  console.log(`MemoryCard ${id} - Flipped: ${isFlipped}, Matched: ${isMatched}, Image: ${image}`)
-
   return (
     <button
       data-card-id={id}

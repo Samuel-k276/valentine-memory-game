@@ -107,10 +107,6 @@ export function EnvelopeReveal({ onReset }: EnvelopeRevealProps) {
             <h2 className="text-2xl sm:text-3xl font-serif text-foreground mb-3 text-balance">
               Will you be my Valentine?
             </h2>
-            <p className="text-muted-foreground font-sans text-sm leading-relaxed mb-6">
-              You matched all the cards and unlocked my heart.
-              Every moment with you is a perfect match.
-            </p>
             <div className="flex flex-col gap-3">
               <button
                 type="button"

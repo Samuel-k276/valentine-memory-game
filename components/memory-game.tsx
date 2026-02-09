@@ -87,7 +87,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
       // Second pick -- determine match/mismatch by comparing image sources
-      const isMatch = state.firstPick.image === clickedCard.image
+      const isMatch = state.firstPick.image === clickedCard.image || true
 
       return {
         ...state,
@@ -158,12 +158,13 @@ export function MemoryGame() {
   const [state, dispatch] = useReducer(gameReducer, null, createInitialState)
   const { cards, health, matchedPairs, pendingResult, isChecking, isShaking, gameWon, gameLost } = state
 
+  console.log(cards)
+
   const resetGame = useCallback(() => {
     dispatch({ type: "RESET" })
   }, [])
 
   const handleCardClick = useCallback((id: number) => {
-    console.log(`Card clicked: ${id}, source: ${state.cards.find(c => c.id === id)?.image}`)
     dispatch({ type: "FLIP_CARD", id })
   }, [state.cards])
 

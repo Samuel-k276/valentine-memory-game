@@ -23,16 +23,25 @@ export function Confetti() {
       "hsl(345, 63%, 67%)",
       "hsl(0, 0%, 100%)",
     ]
-    const newPieces: ConfettiPiece[] = Array.from({ length: 50 }).map((_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      delay: Math.random() * 2,
-      duration: 2 + Math.random() * 2,
-      color: colors[Math.floor(Math.random() * colors.length)],
-      size: 6 + Math.random() * 10,
-      rotation: Math.random() * 360,
-    }))
-    setPieces(newPieces)
+
+    const generate = () => {
+      // larger burst and larger pieces
+      const newPieces: ConfettiPiece[] = Array.from({ length: 80 }).map((_, i) => ({
+        id: i,
+        left: Math.random() * 100,
+        delay: Math.random() * 2,
+        duration: 2 + Math.random() * 2,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: 10 + Math.random() * 24,
+        rotation: Math.random() * 360,
+      }))
+      setPieces(newPieces)
+    }
+
+    generate()
+    // regenerate bursts while component is mounted
+    const interval = setInterval(generate, 1100)
+    return () => clearInterval(interval)
   }, [])
 
   return (
