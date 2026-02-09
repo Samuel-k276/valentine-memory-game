@@ -11,33 +11,40 @@ export interface CardData {
 }
 
 interface MemoryCardProps {
-  card: CardData
+  id: number
+  image: string
+  isFlipped: boolean
+  isMatched: boolean
   onClick: (id: number) => void
   disabled: boolean
 }
 
-export function MemoryCard({ card, onClick, disabled }: MemoryCardProps) {
+export function MemoryCard({ id, image, isFlipped, isMatched, onClick, disabled }: MemoryCardProps) {
   const handleClick = () => {
-    if (!disabled && !card.isFlipped && !card.isMatched) {
-      onClick(card.id)
+    if (!disabled && !isFlipped && !isMatched) {
+      onClick(id)
     }
   }
 
+  console.log(`MemoryCard ${id} - Flipped: ${isFlipped}, Matched: ${isMatched}, Image: ${image}`)
+
   return (
     <button
+      data-card-id={id}
+      data-image={image}
       type="button"
       onClick={handleClick}
-      disabled={disabled || card.isFlipped || card.isMatched}
+      disabled={disabled || isFlipped || isMatched}
       className={cn(
         "relative w-full aspect-[3/4] cursor-pointer [perspective:600px] group",
-        (disabled || card.isFlipped || card.isMatched) && "cursor-default"
+        (disabled || isFlipped || isMatched) && "cursor-default"
       )}
-      aria-label={card.isFlipped || card.isMatched ? "Card revealed" : "Hidden card"}
+      aria-label={isFlipped || isMatched ? "Card revealed" : "Hidden card"}
     >
       <div
         className={cn(
           "relative w-full h-full transition-transform duration-500 [transform-style:preserve-3d]",
-          (card.isFlipped || card.isMatched) && "[transform:rotateY(180deg)]"
+          (isFlipped || isMatched) && "[transform:rotateY(180deg)]"
         )}
       >
         {/* Back of card (visible when not flipped) */}
@@ -56,17 +63,22 @@ export function MemoryCard({ card, onClick, disabled }: MemoryCardProps) {
         <div
           className={cn(
             "absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] rounded-lg overflow-hidden shadow-md border-2",
-            card.isMatched ? "border-accent ring-2 ring-accent/30" : "border-primary/30"
+            isMatched ? "border-accent ring-2 ring-accent/30" : "border-primary/30"
           )}
         >
           <Image
-            src={card.image || "/placeholder.svg"}
+            src={image}
             alt="Card front"
             fill
             className="object-cover"
             sizes="(max-width: 640px) 60px, (max-width: 768px) 80px, 120px"
           />
-          {card.isMatched && <div className="absolute inset-0 bg-accent/10" />}
+          {(
+            <div className="opacity-0 absolute top-1 left-1 text-[10px] bg-black/60 text-white px-1 rounded pointer-events-none">
+              {image}
+            </div>
+          )}
+          {isMatched && <div className="absolute inset-0 bg-accent/10" />}
         </div>
       </div>
     </button>

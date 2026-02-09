@@ -7,15 +7,26 @@ import { EnvelopeReveal } from "./envelope-reveal"
 import { GameOver } from "./game-over"
 import { Trophy } from "lucide-react"
 
-const CARD_IMAGES = Array.from({ length: 24 }, (_, i) => `/images/${Math.floor(i/2)}.jpg` )
 const MAX_HEALTH = 8
 
-const ALL_CARDS: CardData[] = CARD_IMAGES.map((image, index) => ({
-  id: index,
-  image,
-  isFlipped: false,
-  isMatched: false,
-}))
+// Create pairs: [0.jpg, 0.jpg, 1.jpg, 1.jpg, ..., 11.jpg, 11.jpg]
+function createCardPairs(): CardData[] {
+  const images = Array.from({ length: 24 }, (_, i) => `/images/${Math.floor(i/2)}.jpg`)
+  
+  // Shuffle the images array
+  for (let i = images.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [images[i], images[j]] = [images[j], images[i]];
+  }
+  
+  // Create cards with shuffled images
+  return images.map((image, index) => ({
+    id: index,
+    image,
+    isFlipped: false,
+    isMatched: false,
+  }))
+}
 
 interface GameState {
   cards: CardData[]
@@ -41,7 +52,7 @@ type GameAction =
 
 function createInitialState(): GameState {
   return {
-    cards: ALL_CARDS,
+    cards: createCardPairs(),
     health: MAX_HEALTH,
     matchedPairs: 0,
     firstPick: null,
@@ -154,7 +165,7 @@ export function MemoryGame() {
   const handleCardClick = useCallback((id: number) => {
     console.log(`Card clicked: ${id}, source: ${state.cards.find(c => c.id === id)?.image}`)
     dispatch({ type: "FLIP_CARD", id })
-  }, [])
+  }, [state.cards])
 
   // When a pending result is set, schedule resolution after a delay for animation
   useEffect(() => {
@@ -220,14 +231,17 @@ export function MemoryGame() {
       {/* Card Grid */}
       <main className="max-w-2xl mx-auto px-4 pb-8">
         <div className="grid grid-cols-6 gap-2 sm:gap-3" role="grid" aria-label="Memory card game grid">
-          {cards.map((card, index) => {
-            return <MemoryCard
-              key={index}
-              card={card}
+          {cards.map((card) => (
+            <MemoryCard
+              image={card.image}
+              isFlipped={card.isFlipped}
+              isMatched={card.isMatched}
+              id={card.id}
+              key={card.id}
               onClick={handleCardClick}
               disabled={isChecking || gameWon || gameLost}
             />
-          })}
+          ))}
         </div>
       </main>
 
