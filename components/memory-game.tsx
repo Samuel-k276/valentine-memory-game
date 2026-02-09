@@ -1,0 +1,258 @@
+"use client"
+
+import { useReducer, useCallback, useEffect } from "react"
+import { MemoryCard, type CardData } from "./memory-card"
+import { HealthBar } from "./health-bar"
+import { EnvelopeReveal } from "./envelope-reveal"
+import { GameOver } from "./game-over"
+import { Trophy } from "lucide-react"
+
+const CARD_IMAGES = Array.from({ length: 24 }, (_, i) => `/images/${Math.floor(i/2)}.jpg` )
+const indexArray = CARD_IMAGES.map((_, index) => index)
+const MAX_HEALTH = 8
+
+
+
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  console.log("shuffled:", shuffled)
+  return shuffled
+}
+
+const shuffleCards = shuffleArray(CARD_IMAGES)
+const ALL_CARDS: CardData[] = shuffleCards.map((image, index) => ({
+  id: index,
+  image,
+  isFlipped: false,
+  isMatched: false,
+}))
+
+
+interface GameState {
+  cards: CardData[]
+  health: number
+  matchedPairs: number
+  firstPick: { id: number; image: string } | null
+  secondPick: { id: number; image: string } | null
+  pendingResult: "match" | "mismatch" | null
+  isChecking: boolean
+  isShaking: boolean
+  gameWon: boolean
+  gameLost: boolean
+  moves: number
+}
+
+type GameAction =
+  | { type: "FLIP_CARD"; id: number }
+  | { type: "RESOLVE" }
+  | { type: "STOP_SHAKING" }
+  | { type: "SET_WON" }
+  | { type: "SET_LOST" }
+  | { type: "RESET" }
+
+function createInitialState(): GameState {
+  return {
+    cards: ALL_CARDS.map(card => ({ ...card, isFlipped: false, isMatched: false })),
+    health: MAX_HEALTH,
+    matchedPairs: 0,
+    firstPick: null,
+    secondPick: null,
+    pendingResult: null,
+    isChecking: false,
+    isShaking: false,
+    gameWon: false,
+    gameLost: false,
+    moves: 0,
+  }
+}
+
+function gameReducer(state: GameState, action: GameAction): GameState {
+  switch (action.type) {
+    case "FLIP_CARD": {
+      if (state.isChecking || state.gameWon || state.gameLost) return state
+
+      const clickedCard = state.cards.find((c) => c.id === action.id)
+      if (!clickedCard || clickedCard.isFlipped || clickedCard.isMatched) return state
+
+      const newCards = state.cards.map((card) =>
+        card.id === action.id ? { ...card, isFlipped: true } : card,
+      )
+
+      if (state.firstPick === null) {
+        return {
+          ...state,
+          cards: newCards,
+          firstPick: { id: clickedCard.id, image: clickedCard.image },
+        }
+      }
+
+      // Second pick -- determine match/mismatch by comparing image sources
+      const isMatch = state.firstPick.image === clickedCard.image
+
+      return {
+        ...state,
+        cards: newCards,
+        secondPick: { id: clickedCard.id, image: clickedCard.image },
+        pendingResult: isMatch ? "match" : "mismatch",
+        isChecking: true,
+        moves: state.moves + 1,
+      }
+    }
+
+    case "RESOLVE": {
+      if (!state.firstPick || !state.secondPick || !state.pendingResult) return state
+
+      if (state.pendingResult === "match") {
+        const newCards = state.cards.map((card) =>
+          card.id === state.firstPick!.id || card.id === state.secondPick!.id
+            ? { ...card, isMatched: true }
+            : card,
+        )
+        return {
+          ...state,
+          cards: newCards,
+          matchedPairs: state.matchedPairs + 1,
+          firstPick: null,
+          secondPick: null,
+          pendingResult: null,
+          isChecking: false,
+        }
+      }
+
+      // mismatch
+      const newCards = state.cards.map((card) =>
+        card.id === state.firstPick!.id || card.id === state.secondPick!.id
+          ? { ...card, isFlipped: false }
+          : card,
+      )
+      return {
+        ...state,
+        cards: newCards,
+        health: state.health - 1,
+        firstPick: null,
+        secondPick: null,
+        pendingResult: null,
+        isChecking: false,
+        isShaking: true,
+      }
+    }
+
+    case "STOP_SHAKING":
+      return { ...state, isShaking: false }
+
+    case "SET_WON":
+      return { ...state, gameWon: true }
+
+    case "SET_LOST":
+      return { ...state, gameLost: true }
+
+    case "RESET":
+      return createInitialState()
+
+    default:
+      return state
+  }
+}
+
+export function MemoryGame() {
+  const [state, dispatch] = useReducer(gameReducer, null, createInitialState)
+  const { cards, health, matchedPairs, pendingResult, isChecking, isShaking, gameWon, gameLost } = state
+
+  const resetGame = useCallback(() => {
+    dispatch({ type: "RESET" })
+  }, [])
+
+  console.log(cards)
+
+  const handleCardClick = useCallback((id: number) => {
+    console.log(`Card clicked: ${id}, source: ${state.cards.find(c => c.id === id)?.image}`)
+    dispatch({ type: "FLIP_CARD", id })
+  }, [])
+
+  // When a pending result is set, schedule resolution after a delay for animation
+  useEffect(() => {
+    if (pendingResult === null) return
+
+    const delay = pendingResult === "match" ? 600 : 900
+    const timer = setTimeout(() => {
+      dispatch({ type: "RESOLVE" })
+    }, delay)
+
+    return () => clearTimeout(timer)
+  }, [pendingResult])
+
+  // Stop shaking after animation
+  useEffect(() => {
+    if (!isShaking) return
+    const timer = setTimeout(() => dispatch({ type: "STOP_SHAKING" }), 500)
+    return () => clearTimeout(timer)
+  }, [isShaking])
+
+  // Check win/loss conditions
+  useEffect(() => {
+    if (matchedPairs === 12 && !gameWon) {
+      const timer = setTimeout(() => dispatch({ type: "SET_WON" }), 700)
+      return () => clearTimeout(timer)
+    }
+  }, [matchedPairs, gameWon])
+
+  useEffect(() => {
+    if (health <= 0 && !gameLost) {
+      const timer = setTimeout(() => dispatch({ type: "SET_LOST" }), 600)
+      return () => clearTimeout(timer)
+    }
+  }, [health, gameLost])
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="pt-6 pb-4 px-4 text-center">
+        <h1 className="text-3xl sm:text-4xl font-serif text-foreground mb-1 text-balance">
+          A Game For You
+        </h1>
+        <p className="text-sm font-sans text-muted-foreground">
+          Match all the pairs to reveal a surprise
+        </p>
+      </header>
+
+      {/* Game Stats */}
+      <div className="max-w-2xl mx-auto px-4 mb-4">
+        <div className="flex items-center justify-between bg-card rounded-xl px-4 py-3 shadow-sm border border-border">
+          <HealthBar currentHealth={health} maxHealth={MAX_HEALTH} shaking={isShaking} />
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <Trophy className="w-4 h-4 text-accent" aria-hidden="true" />
+              <span className="text-sm font-sans text-muted-foreground">
+                <span className="text-foreground font-medium">{matchedPairs}</span>/12
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Card Grid */}
+      <main className="max-w-2xl mx-auto px-4 pb-8">
+        <div className="grid grid-cols-6 gap-2 sm:gap-3" role="grid" aria-label="Memory card game grid">
+          {cards.map((card, index) => {
+            return <MemoryCard
+              key={index}
+              card={card}
+              onClick={handleCardClick}
+              disabled={isChecking || gameWon || gameLost}
+            />
+          })}
+        </div>
+      </main>
+
+      {/* Win state - Envelope Reveal */}
+      {gameWon && <EnvelopeReveal onReset={resetGame} />}
+
+      {/* Lose state */}
+      {gameLost && <GameOver onReset={resetGame} />}
+    </div>
+  )
+}
