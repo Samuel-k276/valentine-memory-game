@@ -14,8 +14,11 @@ const lora = Lora({
 })
 
 export const metadata: Metadata = {
-  title: 'A Special Game For You',
-  description: 'A Valentine\'s Day memory game made with love',
+  title: 'Patootie Valentine',
+  description: 'A Valentine\'s Day memory game',
+  icons: {
+    icon: '/Screenshot 2026-02-09 214544.png',
+  },
 }
 
 export const viewport: Viewport = {
