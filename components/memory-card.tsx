@@ -23,8 +23,6 @@ export function MemoryCard({ card, onClick, disabled }: MemoryCardProps) {
     }
   }
 
-  console.log(`Rendering card ${card.id} - Fli${card.image}`)
-
   return (
     <button
       type="button"
@@ -68,9 +66,7 @@ export function MemoryCard({ card, onClick, disabled }: MemoryCardProps) {
             className="object-cover"
             sizes="(max-width: 640px) 60px, (max-width: 768px) 80px, 120px"
           />
-          {card.isMatched && (
-            <div className="absolute inset-0 bg-accent/10" />
-          )}
+          {card.isMatched && <div className="absolute inset-0 bg-accent/10" />}
         </div>
       </div>
     </button>

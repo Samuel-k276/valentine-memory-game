@@ -8,29 +8,14 @@ import { GameOver } from "./game-over"
 import { Trophy } from "lucide-react"
 
 const CARD_IMAGES = Array.from({ length: 24 }, (_, i) => `/images/${Math.floor(i/2)}.jpg` )
-const indexArray = CARD_IMAGES.map((_, index) => index)
 const MAX_HEALTH = 8
 
-
-
-function shuffleArray<T>(array: T[]): T[] {
-  const shuffled = [...array]
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
-  }
-  console.log("shuffled:", shuffled)
-  return shuffled
-}
-
-const shuffleCards = shuffleArray(CARD_IMAGES)
-const ALL_CARDS: CardData[] = shuffleCards.map((image, index) => ({
+const ALL_CARDS: CardData[] = CARD_IMAGES.map((image, index) => ({
   id: index,
   image,
   isFlipped: false,
   isMatched: false,
 }))
-
 
 interface GameState {
   cards: CardData[]
@@ -56,7 +41,7 @@ type GameAction =
 
 function createInitialState(): GameState {
   return {
-    cards: ALL_CARDS.map(card => ({ ...card, isFlipped: false, isMatched: false })),
+    cards: ALL_CARDS,
     health: MAX_HEALTH,
     matchedPairs: 0,
     firstPick: null,
@@ -165,8 +150,6 @@ export function MemoryGame() {
   const resetGame = useCallback(() => {
     dispatch({ type: "RESET" })
   }, [])
-
-  console.log(cards)
 
   const handleCardClick = useCallback((id: number) => {
     console.log(`Card clicked: ${id}, source: ${state.cards.find(c => c.id === id)?.image}`)
